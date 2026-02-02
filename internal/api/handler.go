@@ -68,21 +68,17 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Handle APK (Required)
+	var apkFilename string
 	apkFile, apkHeader, err := r.FormFile("apk")
-	if err != nil {
-		sendError(w, http.StatusBadRequest, "Missing 'apk' file")
-		return
+	if err == nil {
+		defer apkFile.Close()
+		apkFilename = filepath.Base(apkHeader.Filename)
+		safeApkPath := filepath.Join(inDir, apkFilename)
+		outApk, _ := os.Create(safeApkPath)
+		defer outApk.Close()
+		io.Copy(outApk, apkFile)
 	}
-	defer apkFile.Close()
 
-	apkFilename := filepath.Base(apkHeader.Filename)
-	safeApkPath := filepath.Join(inDir, apkFilename)
-	outApk, _ := os.Create(safeApkPath)
-	defer outApk.Close()
-	io.Copy(outApk, apkFile)
-
-	// Handle Icon (Optional)
 	var iconFilename string
 	iconFile, iconHeader, err := r.FormFile("icon")
 	if err == nil {
@@ -92,6 +88,11 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		outIcon, _ := os.Create(safeIconPath)
 		defer outIcon.Close()
 		io.Copy(outIcon, iconFile)
+	}
+
+	if apkFilename == "" && iconFilename == "" {
+		sendError(w, http.StatusBadRequest, "At least one file (apk or icon) is required")
+		return
 	}
 
 	sendJSON(w, http.StatusOK, JsonResponse{
