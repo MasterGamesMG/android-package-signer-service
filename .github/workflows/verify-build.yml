@@ -1,0 +1,40 @@
+name: Build Verification
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Build Service
+      run: |
+        go mod tidy
+        go build -v -o out/service cmd/server/main.go
+    
+    - name: Verify Artifact Creation
+      shell: bash
+      run: |
+        if [ -f out/service ] || [ -f out/service.exe ]; then
+          echo "Build successful: Artifact created."
+        else
+          echo "Build failed: No artifact found."
+          exit 1
+        fi
