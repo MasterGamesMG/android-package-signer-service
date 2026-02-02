@@ -1,0 +1,6 @@
+android-package-signer-service
+Copyright 2026 MasterGamesMG
+
+This product includes software developed by 'dvaoru' (ApkRenamer).
+- Source: https://github.com/dvaoru/ApkRenamer
+- License: Apache License, Version 2.0

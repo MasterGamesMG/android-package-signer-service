@@ -1,0 +1,16 @@
+# User Environment
+.env
+
+# Dependencies
+bin/
+temp/
+
+# Runtime Data
+temp/
+out/
+in/
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
