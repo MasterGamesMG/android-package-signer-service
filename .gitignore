@@ -3,6 +3,7 @@
 
 # Dependencies
 bin/
+lib/
 temp/
 
 # Runtime Data
