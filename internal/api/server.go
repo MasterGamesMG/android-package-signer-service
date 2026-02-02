@@ -18,5 +18,6 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/upload", s.handleUpload)
 	mux.HandleFunc("/process", s.handleProcess)
 	mux.HandleFunc("/download", s.handleDownload)
+	mux.HandleFunc("/templates", s.handleTemplates)
 	return mux
 }

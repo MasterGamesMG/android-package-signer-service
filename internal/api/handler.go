@@ -103,9 +103,57 @@ func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// POST /templates
+func (s *Server) handleTemplates(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Admin check could go here (e.g. check Header X-Admin-Key)
+
+	if err := r.ParseMultipartForm(500 << 20); err != nil {
+		sendError(w, http.StatusBadRequest, "File too large")
+		return
+	}
+
+	file, header, err := r.FormFile("apk")
+	if err != nil {
+		sendError(w, http.StatusBadRequest, "Missing 'apk' file")
+		return
+	}
+	defer file.Close()
+
+	// Get Template ID from form or use filename
+	id := r.FormValue("id")
+	if id == "" {
+		id = filepath.Base(header.Filename)
+	}
+
+	// Save to data/templates/
+	cwd, _ := os.Getwd()
+	templateDir := filepath.Join(cwd, "data", "templates")
+	os.MkdirAll(templateDir, 0755)
+
+	targetPath := filepath.Join(templateDir, id)
+	out, err := os.Create(targetPath)
+	if err != nil {
+		sendError(w, http.StatusInternalServerError, "Storage failed")
+		return
+	}
+	defer out.Close()
+	io.Copy(out, file)
+
+	sendJSON(w, http.StatusOK, JsonResponse{
+		Status: "ok",
+		Data:   map[string]string{"template_id": id},
+	})
+}
+
 // POST /process
 type ProcessRequest struct {
-	Filename     string `json:"filename"`
+	Filename     string `json:"filename"` // Optional (Legacy/Upload flow)
+	TemplateID   string `json:"template_id"`
 	PackageName  string `json:"package_name"`
 	AppName      string `json:"app_name"`
 	IconFilename string `json:"icon_filename"`
@@ -129,9 +177,20 @@ func (s *Server) handleProcess(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	inputPath := filepath.Join(inDir, req.Filename)
+	// Resolve Input Path: Template OR Uploaded File
+	var inputPath string
+	if req.TemplateID != "" {
+		cwd, _ := os.Getwd()
+		inputPath = filepath.Join(cwd, "data", "templates", req.TemplateID)
+	} else if req.Filename != "" {
+		inputPath = filepath.Join(inDir, req.Filename)
+	} else {
+		sendError(w, http.StatusBadRequest, "Missing template_id or filename")
+		return
+	}
+
 	if _, err := os.Stat(inputPath); os.IsNotExist(err) {
-		sendError(w, http.StatusNotFound, "File not found. Please upload first.")
+		sendError(w, http.StatusNotFound, "Input file (Template/Upload) not found.")
 		return
 	}
 
