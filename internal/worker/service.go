@@ -2,6 +2,7 @@ package worker
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,7 +33,7 @@ type Options struct {
 }
 
 // ProcessApk executes the signing tool safely.
-func (s *Service) ProcessApk(ctx context.Context, inputPath string, opts Options) (string, error) {
+func (s *Service) ProcessApk(ctx context.Context, inputPath, outputDir string, opts Options) (string, error) {
 	// Acquire concurrency token
 	select {
 	case s.sem <- struct{}{}:
@@ -41,14 +42,17 @@ func (s *Service) ProcessApk(ctx context.Context, inputPath string, opts Options
 		return "", ctx.Err()
 	}
 
-	cwd, _ := os.Getwd()
-	outDir := filepath.Join(cwd, "out")
-	if err := os.MkdirAll(outDir, 0755); err != nil {
+	// Ensure output directory exists (Caller provided)
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
 		return "", err
 	}
 
-	outFilename := fmt.Sprintf("signed_%d.apk", time.Now().UnixNano())
-	outputPath := filepath.Join(outDir, outFilename)
+	// SECURE FILENAME: Hash(timestamp + unique_input_path) for obscurity
+	uniqueStr := fmt.Sprintf("%d-%s", time.Now().UnixNano(), inputPath)
+	hash := sha256.Sum256([]byte(uniqueStr))
+	outFilename := fmt.Sprintf("%x.apk", hash) // 64-char hex string
+
+	outputPath := filepath.Join(outputDir, outFilename)
 
 	// Build arguments dynamically based on Options
 	args := []string{
