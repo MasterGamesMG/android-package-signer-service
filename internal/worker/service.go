@@ -95,7 +95,10 @@ func (s *Service) ProcessApk(ctx context.Context, inputPath, outputDir string, o
 
 	// Add Java to PATH for subprocesses (e.g. apktool.jar)
 	javaDir := filepath.Dir(s.javaPath)
-	cmd.Env = append(os.Environ(), "PATH="+javaDir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	cmd.Env = append(os.Environ(),
+		"PATH="+javaDir+string(os.PathListSeparator)+os.Getenv("PATH"),
+		"JAVA_TOOL_OPTIONS=-Xmx512m",
+	)
 
 	if err := cmd.Run(); err != nil {
 		return "", fmt.Errorf("execution failed: %v", err)
