@@ -158,6 +158,7 @@ type ProcessRequest struct {
 	PackageName  string `json:"package_name"`
 	AppName      string `json:"app_name"`
 	IconFilename string `json:"icon_filename"`
+	DeepRename   bool   `json:"deep_rename"` // Optional (Default: false)
 }
 
 func (s *Server) handleProcess(w http.ResponseWriter, r *http.Request) {
@@ -210,6 +211,7 @@ func (s *Server) handleProcess(w http.ResponseWriter, r *http.Request) {
 		PackageName: req.PackageName,
 		AppName:     req.AppName,
 		IconPath:    iconPath,
+		DeepRename:  req.DeepRename,
 	}
 
 	// Trigger worker
